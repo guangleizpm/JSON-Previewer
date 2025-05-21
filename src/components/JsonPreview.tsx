@@ -1,18 +1,64 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { useState, useEffect } from 'react';
+import { Box, Typography, Paper, TextField, Button, Stack } from '@mui/material';
+import { Save as SaveIcon, SaveAs as SaveAsIcon } from '@mui/icons-material';
 
 interface JsonPreviewProps {
   jsonContent: string;
+  onSave?: (content: string, isNewVersion: boolean) => void;
+  readOnly?: boolean;
 }
 
-export const JsonPreview: React.FC<JsonPreviewProps> = ({ jsonContent }) => {
-  let parsedContent;
-  let error = null;
+export const JsonPreview: React.FC<JsonPreviewProps> = ({ 
+  jsonContent, 
+  onSave,
+  readOnly = false 
+}) => {
+  const [parsedContent, setParsedContent] = useState<any>(null);
+  const [editedContent, setEditedContent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  try {
-    parsedContent = JSON.parse(jsonContent);
-  } catch (e) {
-    error = e instanceof Error ? e.message : 'Invalid JSON';
-  }
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(jsonContent);
+      setParsedContent(parsed);
+      setEditedContent(parsed);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid JSON');
+    }
+  }, [jsonContent]);
+
+  const handleContentChange = (field: string, value: string) => {
+    if (!editedContent) return;
+    
+    setEditedContent({
+      ...editedContent,
+      [field]: value
+    });
+  };
+
+  const handleLearningObjectiveChange = (index: number, value: string) => {
+    if (!editedContent?.learningObjectives) return;
+    
+    const newObjectives = [...editedContent.learningObjectives];
+    newObjectives[index] = value;
+    
+    setEditedContent({
+      ...editedContent,
+      learningObjectives: newObjectives
+    });
+  };
+
+  const handleSave = (isNewVersion: boolean) => {
+    if (!editedContent || !onSave) return;
+    
+    try {
+      const updatedJson = JSON.stringify(editedContent, null, 2);
+      onSave(updatedJson, isNewVersion);
+    } catch (e) {
+      setError('Error saving changes');
+    }
+  };
 
   if (error) {
     return (
@@ -22,74 +68,72 @@ export const JsonPreview: React.FC<JsonPreviewProps> = ({ jsonContent }) => {
     );
   }
 
-  const renderContent = (content: any) => {
-    if (!content) return null;
-
-    switch (content.type) {
-      case 'lesson':
-        return (
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              {content.title}
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {content.content}
-            </Typography>
-            {content.learningObjectives && (
-              <Box mt={2}>
-                <Typography variant="h6" gutterBottom>
-                  Learning Objectives
-                </Typography>
-                <ul>
-                  {content.learningObjectives.map((objective: string, index: number) => (
-                    <li key={index}>
-                      <Typography variant="body1">{objective}</Typography>
-                    </li>
-                  ))}
-                </ul>
-              </Box>
-            )}
-          </Box>
-        );
-      
-      case 'activity':
-        return (
-          <Box>
-            <Typography variant="h4" gutterBottom>
-              {content.title}
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {content.description}
-            </Typography>
-            {content.steps && (
-              <Box mt={2}>
-                <Typography variant="h6" gutterBottom>
-                  Steps
-                </Typography>
-                <ol>
-                  {content.steps.map((step: string, index: number) => (
-                    <li key={index}>
-                      <Typography variant="body1">{step}</Typography>
-                    </li>
-                  ))}
-                </ol>
-              </Box>
-            )}
-          </Box>
-        );
-
-      default:
-        return (
-          <Typography color="error">
-            Unknown content type: {content.type}
-          </Typography>
-        );
-    }
-  };
+  if (!editedContent) return null;
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-      {renderContent(parsedContent)}
+      {!readOnly && (
+        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={() => handleSave(false)}
+          >
+            Save Changes
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<SaveAsIcon />}
+            onClick={() => handleSave(true)}
+          >
+            Save As New Version
+          </Button>
+        </Stack>
+      )}
+
+      <Box>
+        <Typography variant="h6" gutterBottom>
+          Title
+        </Typography>
+        <TextField
+          fullWidth
+          value={editedContent.title || ''}
+          onChange={(e) => handleContentChange('title', e.target.value)}
+          disabled={readOnly}
+          sx={{ mb: 3 }}
+        />
+
+        <Typography variant="h6" gutterBottom>
+          Content
+        </Typography>
+        <TextField
+          fullWidth
+          multiline
+          rows={4}
+          value={editedContent.content || ''}
+          onChange={(e) => handleContentChange('content', e.target.value)}
+          disabled={readOnly}
+          sx={{ mb: 3 }}
+        />
+
+        {editedContent.learningObjectives && (
+          <Box mt={2}>
+            <Typography variant="h6" gutterBottom>
+              Learning Objectives
+            </Typography>
+            {editedContent.learningObjectives.map((objective: string, index: number) => (
+              <TextField
+                key={index}
+                fullWidth
+                value={objective}
+                onChange={(e) => handleLearningObjectiveChange(index, e.target.value)}
+                disabled={readOnly}
+                sx={{ mb: 2 }}
+              />
+            ))}
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 }; 
