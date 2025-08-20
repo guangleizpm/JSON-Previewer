@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Paper, TextField, Button, Stack } from '@mui/material';
+import { Box, Typography, Paper, TextField, Button, Stack, Chip } from '@mui/material';
 import { Save as SaveIcon, SaveAs as SaveAsIcon } from '@mui/icons-material';
+
+type ContentType = 'itemList' | 'activity' | 'lesson';
 
 interface JsonPreviewProps {
   jsonContent: string;
   onSave?: (content: string, isNewVersion: boolean) => void;
   readOnly?: boolean;
+  contentType?: ContentType;
 }
 
 export const JsonPreview: React.FC<JsonPreviewProps> = ({ 
   jsonContent, 
   onSave,
-  readOnly = false 
+  readOnly = false,
+  contentType = 'lesson'
 }) => {
   const [parsedContent, setParsedContent] = useState<any>(null);
   const [editedContent, setEditedContent] = useState<any>(null);
@@ -49,6 +53,21 @@ export const JsonPreview: React.FC<JsonPreviewProps> = ({
     });
   };
 
+  const handleItemChange = (index: number, field: string, value: string) => {
+    if (!editedContent?.items) return;
+    
+    const newItems = [...editedContent.items];
+    newItems[index] = {
+      ...newItems[index],
+      [field]: value
+    };
+    
+    setEditedContent({
+      ...editedContent,
+      items: newItems
+    });
+  };
+
   const handleSave = (isNewVersion: boolean) => {
     if (!editedContent || !onSave) return;
     
@@ -72,21 +91,22 @@ export const JsonPreview: React.FC<JsonPreviewProps> = ({
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+      <Box sx={{ mb: 2 }}>
+        <Chip 
+          label={`Content Type: ${contentType}`} 
+          color="primary" 
+          variant="outlined"
+        />
+      </Box>
+
       {!readOnly && (
         <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
           <Button
             variant="contained"
             startIcon={<SaveIcon />}
-            onClick={() => handleSave(false)}
+            onClick={() => handleSave()}
           >
             Save Changes
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<SaveAsIcon />}
-            onClick={() => handleSave(true)}
-          >
-            Save As New Version
           </Button>
         </Stack>
       )}
@@ -130,6 +150,37 @@ export const JsonPreview: React.FC<JsonPreviewProps> = ({
                 disabled={readOnly}
                 sx={{ mb: 2 }}
               />
+            ))}
+          </Box>
+        )}
+
+        {editedContent.items && contentType === 'itemList' && (
+          <Box mt={2}>
+            <Typography variant="h6" gutterBottom>
+              Items
+            </Typography>
+            {editedContent.items.map((item: any, index: number) => (
+              <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Item {index + 1}
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Question"
+                  value={item.question || ''}
+                  onChange={(e) => handleItemChange(index, 'question', e.target.value)}
+                  disabled={readOnly}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Answer"
+                  value={item.answer || ''}
+                  onChange={(e) => handleItemChange(index, 'answer', e.target.value)}
+                  disabled={readOnly}
+                  sx={{ mb: 2 }}
+                />
+              </Box>
             ))}
           </Box>
         )}

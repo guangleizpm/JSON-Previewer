@@ -1,5 +1,5 @@
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import { JsonManager } from './components/JsonManager';
+import { JsonPreviewer } from './pages/JsonPreviewer';
 
 const theme = createTheme({
   palette: {
@@ -11,7 +11,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <JsonManager />
+      <JsonPreviewer />
     </ThemeProvider>
   );
 }
